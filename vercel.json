@@ -8,6 +8,19 @@
     ],
     "routes": [
         {
+            "src": "/api/v1/(.*)",
+            "methods": [
+                "OPTIONS"
+            ],
+            "dest": "app/main.py",
+            "headers": {
+                "Access-Control-Allow-Origin": "https://perabox-frontend.vercel.app",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                "Access-Control-Allow-Credentials": "true"
+            }
+        },
+        {
             "src": "/(.*)",
             "dest": "app/main.py"
         }
