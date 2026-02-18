@@ -47,24 +47,22 @@ async def root():
 @app.get("/health/db")
 async def health_db():
     """Health check for database."""
-    from app.core.config import get_settings
-    settings = get_settings()
-    # Mask password
-    db_url = settings.DATABASE_URL
-    if ":" in db_url and "@" in db_url:
-        part1 = db_url.split("@")[0]
-        part2 = db_url.split("@")[1]
+    from app.db.session import engine, SessionLocal
+    from sqlalchemy import text
+    
+    # Get actual engine URL (masked)
+    real_url = str(engine.url)
+    if ":" in real_url and "@" in real_url:
+        part1 = real_url.split("@")[0]
+        part2 = real_url.split("@")[1]
         if ":" in part1:
             user = part1.split(":")[0]
-            # remove password
             part1 = f"{user}:***"
-        masked_url = f"{part1}@{part2}"
+        masked_real_url = f"{part1}@{part2}"
     else:
-        masked_url = db_url
+        masked_real_url = real_url
 
     try:
-        from app.db.session import SessionLocal
-        from sqlalchemy import text
         db = SessionLocal()
         # Try a simple query
         db.execute(text("SELECT 1"))
@@ -72,13 +70,16 @@ async def health_db():
         return {
             "status": "ok", 
             "message": "Database connection successful",
-            "db_url": masked_url
+            "engine_url": masked_real_url
         }
     except Exception as e:
         import traceback
+        # Try to get underlying error
+        orig_error = getattr(e, "orig", str(e))
         return {
             "status": "error",
             "message": str(e),
-            "db_url": masked_url,
+            "orig_error": str(orig_error),
+            "engine_url": masked_real_url,
             "traceback": traceback.format_exc()
         }
