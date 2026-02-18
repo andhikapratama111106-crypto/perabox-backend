@@ -103,7 +103,7 @@ async def chat_message(request: ChatRequest):
             gemini_history.append({"role": msg.role, "parts": [msg.content]})
 
         # Try multiple model names in case of region/tier restrictions
-        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+        model_names = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
         last_error = None
         
         for model_name in model_names:
