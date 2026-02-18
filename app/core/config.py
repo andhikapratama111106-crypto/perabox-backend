@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+    GOOGLE_API_KEY: str | None = None
     
     class Config:
         env_file = ".env"
