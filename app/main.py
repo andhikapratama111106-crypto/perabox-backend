@@ -46,40 +46,67 @@ async def root():
 
 @app.get("/health/db")
 async def health_db():
-    """Health check for database."""
+    """Health check for database validation."""
+    import socket
     from app.db.session import engine, SessionLocal
     from sqlalchemy import text
     
-    # Get actual engine URL (masked)
+    # Get hostname from engine URL
     real_url = str(engine.url)
-    if ":" in real_url and "@" in real_url:
-        part1 = real_url.split("@")[0]
-        part2 = real_url.split("@")[1]
-        if ":" in part1:
-            user = part1.split(":")[0]
-            part1 = f"{user}:***"
-        masked_real_url = f"{part1}@{part2}"
-    else:
-        masked_real_url = real_url
+    hostname = "unknown"
+    if "@" in real_url:
+        hostname = real_url.split("@")[1].split(":")[0]
 
+    probe_results = {
+        "hostname": hostname,
+        "dns_a": [],
+        "dns_aaaa": [],
+        "tcp_5432": "untested",
+        "tcp_6543": "untested",
+        "engine_url_masked": real_url.replace(real_url.split("@")[0].split(":")[1], "***") if ":" in real_url and "@" in real_url else real_url
+    }
+
+    # 1. DNS Probe
+    try:
+        ais = socket.getaddrinfo(hostname, 0, 0, 0, 0)
+        for result in ais:
+            family, _, _, _, sockaddr = result
+            ip = sockaddr[0]
+            if family == socket.AF_INET:
+                probe_results["dns_a"].append(ip)
+            elif family == socket.AF_INET6:
+                probe_results["dns_aaaa"].append(ip)
+    except Exception as e:
+        probe_results["dns_error"] = str(e)
+
+    # 2. TCP Probe
+    def check_port(host, port):
+        try:
+            sock = socket.create_connection((host, port), timeout=3)
+            sock.close()
+            return "open"
+        except Exception as e:
+            return f"closed: {e}"
+
+    probe_results["tcp_5432"] = check_port(hostname, 5432)
+    probe_results["tcp_6543"] = check_port(hostname, 6543)
+
+    # 3. DB Connect Probe
     try:
         db = SessionLocal()
-        # Try a simple query
         db.execute(text("SELECT 1"))
         db.close()
         return {
             "status": "ok", 
             "message": "Database connection successful",
-            "engine_url": masked_real_url
+            "probe": probe_results
         }
     except Exception as e:
-        import traceback
-        # Try to get underlying error
+        # Get underlying error
         orig_error = getattr(e, "orig", str(e))
         return {
             "status": "error",
             "message": str(e),
             "orig_error": str(orig_error),
-            "engine_url": masked_real_url,
-            "traceback": traceback.format_exc()
+            "probe": probe_results
         }
