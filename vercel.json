@@ -12,6 +12,7 @@
             "methods": [
                 "OPTIONS"
             ],
+            "status": 204,
             "headers": {
                 "Access-Control-Allow-Origin": "https://perabox-frontend.vercel.app",
                 "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
