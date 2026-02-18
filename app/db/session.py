@@ -5,7 +5,26 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(settings.DATABASE_URL)
+# Fix for Heroku/Supabase requiring postgresql:// instead of postgres://
+db_url = settings.DATABASE_URL
+if db_url and db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+connect_args = {}
+if "postgresql" in db_url:
+    connect_args = {
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+        "sslmode": "require",
+    }
+
+engine = create_engine(
+    db_url,
+    pool_pre_ping=True,
+    connect_args=connect_args
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
