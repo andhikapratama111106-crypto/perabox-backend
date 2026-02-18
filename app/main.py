@@ -14,6 +14,7 @@ app = FastAPI(
 origins = [
     "http://localhost:3000",
     "https://perabox-frontend.vercel.app",
+    "https://perabox.vercel.app",
 ]
 
 app.add_middleware(
