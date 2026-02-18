@@ -52,9 +52,19 @@ async def list_models_debug():
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Root endpoint with debug info."""
+    import google.generativeai as genai
+    import pkg_resources
+    
+    version = "unknown"
+    try:
+        version = pkg_resources.get_distribution("google-generativeai").version
+    except:
+        pass
+
     return {
         "message": "Welcome to PERABOX API",
+        "genai_version": version,
         "docs": "/docs",
         "health": "/health/db",
     }
