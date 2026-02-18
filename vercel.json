@@ -8,31 +8,26 @@
     ],
     "routes": [
         {
-            "src": "/(.*)",
-            "dest": "app/main.py"
-        }
-    ],
-    "headers": [
+            "src": "/api/(.*)",
+            "methods": [
+                "OPTIONS"
+            ],
+            "headers": {
+                "Access-Control-Allow-Origin": "https://perabox-frontend.vercel.app",
+                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "86400"
+            },
+            "continue": false
+        },
         {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Access-Control-Allow-Credentials",
-                    "value": "true"
-                },
-                {
-                    "key": "Access-Control-Allow-Origin",
-                    "value": "https://perabox-frontend.vercel.app"
-                },
-                {
-                    "key": "Access-Control-Allow-Methods",
-                    "value": "GET,DELETE,PATCH,POST,PUT,OPTIONS"
-                },
-                {
-                    "key": "Access-Control-Allow-Headers",
-                    "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization"
-                }
-            ]
+            "src": "/(.*)",
+            "dest": "app/main.py",
+            "headers": {
+                "Access-Control-Allow-Origin": "https://perabox-frontend.vercel.app",
+                "Access-Control-Allow-Credentials": "true"
+            }
         }
     ]
 }
