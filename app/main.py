@@ -40,5 +40,24 @@ async def root():
     return {
         "message": "Welcome to PERABOX API",
         "docs": "/docs",
-        "health": "/health",
+        "health": "/health/db",
     }
+
+
+@app.get("/health/db")
+async def health_db():
+    """Health check for database."""
+    try:
+        from app.db.session import SessionLocal
+        from sqlalchemy import text
+        db = SessionLocal()
+        db.execute(text("SELECT 1"))
+        db.close()
+        return {"status": "ok", "message": "Database connection successful"}
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
