@@ -76,11 +76,9 @@ async def list_models():
 async def chat_message(request: ChatRequest):
     api_key = configure_genai()
     if not api_key:
-        # Fallback for demonstration if no API key is provided
         return ChatResponse(response="Halo! Saya Pera-Bot. (Mode Debug: GOOGLE_API_KEY tidak ditemukan di environment. Pastikan sudah input di Vercel Settings & Redeploy.)")
 
     try:
-        # Configuration for "Godrails" (Safety Settings & Generation Config)
         generation_config = {
             "temperature": 0.7,
             "top_p": 0.8,
@@ -88,7 +86,6 @@ async def chat_message(request: ChatRequest):
             "max_output_tokens": 1024,
         }
         
-        # Safety settings to be less restrictive for general conversation but safe
         safety_settings = [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
@@ -96,14 +93,7 @@ async def chat_message(request: ChatRequest):
             {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
         ]
 
-        model = genai.GenerativeModel(
-            model_name='gemini-1.5-flash',
-            generation_config=generation_config,
-            safety_settings=safety_settings
-        )
-        
         # Prepare history for Gemini format
-        # role: 'user' -> 'user', 'model' -> 'model'
         gemini_history = [
             {"role": "user", "parts": [SYSTEM_INSTRUCTION]},
             {"role": "model", "parts": ["Mengerti. Saya adalah Pera-Bot, asisten AI resmi PERABOX. Saya siap membantu pelanggan dengan informasi layanan kami."]}
@@ -112,14 +102,31 @@ async def chat_message(request: ChatRequest):
         for msg in request.history:
             gemini_history.append({"role": msg.role, "parts": [msg.content]})
 
-        chat = model.start_chat(history=gemini_history)
-        response = chat.send_message(request.message)
+        # Try multiple model names in case of region/tier restrictions
+        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+        last_error = None
         
-        return ChatResponse(response=response.text)
+        for model_name in model_names:
+            try:
+                model = genai.GenerativeModel(
+                    model_name=model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+                chat = model.start_chat(history=gemini_history)
+                response = chat.send_message(request.message)
+                return ChatResponse(response=response.text)
+            except Exception as e:
+                last_error = e
+                # Only retry if it's a model not found error
+                if "404" not in str(e) and "not found" not in str(e).lower():
+                    break
+                    
+        raise last_error
+
     except Exception as e:
-        # Check for blocked prompt/response issues
         error_msg = str(e)
         if "finish_reason" in error_msg and "SAFETY" in error_msg:
              return ChatResponse(response="Maaf, saya tidak dapat menjawab pertanyaan tersebut karena melanggar panduan keamanan kami.")
         
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
