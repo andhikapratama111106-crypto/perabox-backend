@@ -36,35 +36,11 @@ app.include_router(payments.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 
 
-@app.get("/list-models")
-async def list_models_debug():
-    import google.generativeai as genai
-    import os
-    from app.api.v1.chat import configure_genai
-    api_key = configure_genai()
-    if not api_key:
-        return {"error": "API Key missing"}
-    try:
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        return {"authorized_models": models}
-    except Exception as e:
-        return {"error": str(e)}
-
 @app.get("/")
 async def root():
-    """Root endpoint with debug info."""
-    import google.generativeai as genai
-    import pkg_resources
-    
-    version = "unknown"
-    try:
-        version = pkg_resources.get_distribution("google-generativeai").version
-    except:
-        pass
-
+    """Root endpoint."""
     return {
         "message": "Welcome to PERABOX API",
-        "genai_version": version,
         "docs": "/docs",
         "health": "/health/db",
     }

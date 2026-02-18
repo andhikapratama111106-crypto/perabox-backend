@@ -58,20 +58,6 @@ Guidelines:
 - If the user greeting, reply with a warm welcome and ask how you can help.
 """
 
-@router.get("/chat/models")
-async def list_models():
-    api_key = configure_genai()
-    if not api_key:
-        return {"error": "No API key configured"}
-    try:
-        models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                models.append(m.name)
-        return {"models": models}
-    except Exception as e:
-        return {"error": str(e)}
-
 @router.post("/chat/message", response_model=ChatResponse)
 async def chat_message(request: ChatRequest):
     api_key = configure_genai()
