@@ -15,8 +15,14 @@ from app.core.config import get_settings
 settings = get_settings()
 
 # Configure Google Gemini
-if settings.GOOGLE_API_KEY:
-    genai.configure(api_key=settings.GOOGLE_API_KEY)
+def configure_genai():
+    api_key = os.getenv("GOOGLE_API_KEY") or settings.GOOGLE_API_KEY
+    if api_key:
+        genai.configure(api_key=api_key)
+    return api_key
+
+# Initial config attempt
+configure_genai()
 
 class ChatMessage(BaseModel):
     role: str # 'user' or 'model'
@@ -54,9 +60,10 @@ Guidelines:
 
 @router.post("/chat/message", response_model=ChatResponse)
 async def chat_message(request: ChatRequest):
-    if not settings.GOOGLE_API_KEY:
+    api_key = configure_genai()
+    if not api_key:
         # Fallback for demonstration if no API key is provided
-        return ChatResponse(response="Halo! Saya Pera-Bot. (Mode Demo: Mohon maaf, API Key Google Gemini belum dikonfigurasi, sehingga saya hanya bisa menyapa Anda. Silakan hubungi admin untuk aktivasi penuh.)")
+        return ChatResponse(response="Halo! Saya Pera-Bot. (Mode Debug: GOOGLE_API_KEY tidak ditemukan di environment. Pastikan sudah input di Vercel Settings & Redeploy.)")
 
     try:
         # Configuration for "Godrails" (Safety Settings & Generation Config)
