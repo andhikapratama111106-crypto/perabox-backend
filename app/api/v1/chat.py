@@ -113,7 +113,7 @@ async def chat_message(request: ChatRequest):
             print(f"Error listing models: {e}")
 
         # Priority list
-        fav_models = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
+        fav_models = ['models/gemini-1.5-flash', 'models/gemini-1.0-pro', 'models/chat-bison-001']
         model_to_use = None
         
         # 1. Try favorites that are actually in the available list
