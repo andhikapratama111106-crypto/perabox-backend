@@ -11,6 +11,9 @@ db_url = settings.DATABASE_URL
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
+if "supabase.co" in db_url and ":5432" in db_url:
+    db_url = db_url.replace(":5432", ":6543")
+
 connect_args = {}
 if "postgresql" in db_url:
     connect_args = {
