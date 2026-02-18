@@ -47,17 +47,38 @@ async def root():
 @app.get("/health/db")
 async def health_db():
     """Health check for database."""
+    from app.core.config import get_settings
+    settings = get_settings()
+    # Mask password
+    db_url = settings.DATABASE_URL
+    if ":" in db_url and "@" in db_url:
+        part1 = db_url.split("@")[0]
+        part2 = db_url.split("@")[1]
+        if ":" in part1:
+            user = part1.split(":")[0]
+            # remove password
+            part1 = f"{user}:***"
+        masked_url = f"{part1}@{part2}"
+    else:
+        masked_url = db_url
+
     try:
         from app.db.session import SessionLocal
         from sqlalchemy import text
         db = SessionLocal()
+        # Try a simple query
         db.execute(text("SELECT 1"))
         db.close()
-        return {"status": "ok", "message": "Database connection successful"}
+        return {
+            "status": "ok", 
+            "message": "Database connection successful",
+            "db_url": masked_url
+        }
     except Exception as e:
         import traceback
         return {
             "status": "error",
             "message": str(e),
+            "db_url": masked_url,
             "traceback": traceback.format_exc()
         }
