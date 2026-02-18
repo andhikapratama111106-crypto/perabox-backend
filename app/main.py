@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, services, bookings, users, technicians, payments
+from app.api.v1 import auth, services, bookings, users, technicians, payments, chat
 
 app = FastAPI(
     title="PERABOX API",
@@ -32,6 +32,7 @@ app.include_router(bookings.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(technicians.router, prefix="/api/v1")
 app.include_router(payments.router, prefix="/api/v1")
+app.include_router(chat.router, prefix="/api/v1")
 
 
 @app.get("/")

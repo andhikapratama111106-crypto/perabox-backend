@@ -1,0 +1,1 @@
+{"status":"ok","message":"Database connection successful","probe":{"hostname":"aws-1-ap-southeast-2.pooler.supabase.com","dns_a":["52.62.122.103","52.62.122.103","52.62.122.103","13.239.87.90","13.239.87.90","13.239.87.90"],"dns_aaaa":[],"tcp_5432":"open","tcp_6543":"open","engine_url_masked":"postgresql+pg8000:***:***@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres"}}
