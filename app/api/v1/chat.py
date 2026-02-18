@@ -102,27 +102,43 @@ async def chat_message(request: ChatRequest):
         for msg in request.history:
             gemini_history.append({"role": msg.role, "parts": [msg.content]})
 
-        # Try multiple model names in case of region/tier restrictions
-        model_names = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
-        last_error = None
+        # Try to find a working model dynamically
+        available_models = []
+        try:
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    available_models.append(m.name)
+            print(f"Available Models: {available_models}")
+        except Exception as e:
+            print(f"Error listing models: {e}")
+
+        # Priority list
+        fav_models = ['models/gemini-1.5-flash', 'models/gemini-1.5-pro', 'models/gemini-pro']
+        model_to_use = None
         
-        for model_name in model_names:
-            try:
-                model = genai.GenerativeModel(
-                    model_name=model_name,
-                    generation_config=generation_config,
-                    safety_settings=safety_settings
-                )
-                chat = model.start_chat(history=gemini_history)
-                response = chat.send_message(request.message)
-                return ChatResponse(response=response.text)
-            except Exception as e:
-                last_error = e
-                # Only retry if it's a model not found error
-                if "404" not in str(e) and "not found" not in str(e).lower():
-                    break
-                    
-        raise last_error
+        # 1. Try favorites that are actually in the available list
+        for fav in fav_models:
+            if fav in available_models:
+                model_to_use = fav
+                break
+        
+        # 2. If no favorites found, use any available model
+        if not model_to_use and available_models:
+            model_to_use = available_models[0]
+            
+        # 3. Fallback to hardcoded favorite if all else fails
+        if not model_to_use:
+            model_to_use = 'models/gemini-1.5-flash'
+
+        print(f"Using model: {model_to_use}")
+        model = genai.GenerativeModel(
+            model_name=model_to_use,
+            generation_config=generation_config,
+            safety_settings=safety_settings
+        )
+        chat = model.start_chat(history=gemini_history)
+        response = chat.send_message(request.message)
+        return ChatResponse(response=response.text)
 
     except Exception as e:
         error_msg = str(e)
