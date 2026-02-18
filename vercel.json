@@ -8,14 +8,6 @@
     ],
     "routes": [
         {
-            "src": "/api/(.*)",
-            "methods": [
-                "OPTIONS"
-            ],
-            "status": 204,
-            "continue": false
-        },
-        {
             "src": "/(.*)",
             "dest": "app/main.py"
         }
