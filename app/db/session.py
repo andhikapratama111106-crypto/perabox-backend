@@ -7,6 +7,7 @@ from app.core.config import get_settings
 settings = get_settings()
 
 import ssl
+import socket
 
 # Fix for Heroku/Supabase requiring postgresql:// instead of postgres://
 db_url = settings.DATABASE_URL
@@ -17,6 +18,19 @@ elif db_url and db_url.startswith("postgresql://"):
 
 if "supabase.co" in db_url and ":5432" in db_url:
     db_url = db_url.replace(":5432", ":6543")
+
+# Force IPv4 resolution for Vercel -> Supabase 6543
+try:
+    if "supabase.co" in db_url and "@" in db_url:
+        # Extract hostname
+        prefix = db_url.split("@")[1]
+        hostname = prefix.split(":")[0]
+        if hostname:
+            ipv4 = socket.gethostbyname(hostname)
+            db_url = db_url.replace(hostname, ipv4)
+            print(f"Resolved {hostname} to {ipv4}")
+except Exception as e:
+    print(f"Failed to resolve hostname: {e}")
 
 connect_args = {}
 if "pg8000" in db_url:
