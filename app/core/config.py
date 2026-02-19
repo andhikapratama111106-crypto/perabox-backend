@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     GOOGLE_API_KEY: str | None = None
     
+    # Midtrans
+    MIDTRANS_SERVER_KEY: str | None = None
+    MIDTRANS_CLIENT_KEY: str | None = None
+    MIDTRANS_IS_PRODUCTION: bool = False
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
