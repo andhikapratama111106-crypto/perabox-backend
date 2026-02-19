@@ -1,3 +1,5 @@
+import uuid
+import time
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -5,7 +7,9 @@ from app.models.models import Payment, Booking
 from app.api.dependencies import get_current_user
 import midtransclient
 from app.core.config import get_settings
+from app.schemas.schemas import QRISResponse, PaymentStatusResponse
 
+router = APIRouter()
 settings = get_settings()
 
 # Initialize Midtrans Core API
@@ -41,6 +45,9 @@ async def get_qris_code(
 
     try:
         # Charge QRIS via Midtrans
+        print(f"[Midtrans Debug] Charging QRIS for Order {payment.id}. Amount: {payment.amount}")
+        print(f"[Midtrans Debug] Using Production: {settings.MIDTRANS_IS_PRODUCTION}")
+        
         param = {
             "payment_type": "qris",
             "transaction_details": {
@@ -61,6 +68,7 @@ async def get_qris_code(
         }
 
         charge_response = midtrans_core.charge(param)
+        print(f"[Midtrans Debug] Charge response received: {charge_response.get('status_code')}")
         
         # Extract actions (QR URL)
         qr_url = ""
@@ -82,9 +90,11 @@ async def get_qris_code(
             expiry_time=int(time.time()) + 900
         )
     except Exception as e:
-        print(f"[Midtrans Error] {str(e)}")
-        # Fallback to mock if Midtrans fails (optional, but better to show error if keys are missing)
-        if not settings.MIDTRANS_SERVER_KEY or "YOUR_SERVER_KEY" in settings.MIDTRANS_SERVER_KEY:
+        print(f"[Midtrans Error] Full Trace: {str(e)}")
+        # Check if keys are actually loaded
+        has_key = settings.MIDTRANS_SERVER_KEY and "YOUR_SERVER_KEY" not in settings.MIDTRANS_SERVER_KEY
+        if not has_key:
+             print("[Midtrans Error] Keys are missing or default. Falling back to mock.")
              qris_string = f"00020101021126670014ID.CO.QRIS.WWW01189360052200000302065204000053033605802ID5911PERABOX.INC6007JAKARTA61051234562070703A016304ABCD"
              qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={qris_string}"
              return QRISResponse(

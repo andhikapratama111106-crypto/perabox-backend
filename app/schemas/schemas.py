@@ -229,3 +229,16 @@ class TestimonialResponse(BaseModel):
     
     class Config:
         from_attributes = True
+# Payment Response extras
+class QRISResponse(BaseModel):
+    payment_id: uuid.UUID
+    qris_string: str
+    qr_url: str
+    amount: Decimal
+    expiry_time: int
+
+
+class PaymentStatusResponse(BaseModel):
+    payment_id: uuid.UUID
+    status: str
+    transaction_id: Optional[str]
