@@ -87,6 +87,70 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/google", response_model=TokenResponse)
+async def google_login(payload: dict, db: Session = Depends(get_db)):
+    """Login or register via Google OAuth access token."""
+    import httpx, secrets
+
+    access_token_google = payload.get("access_token")
+    if not access_token_google:
+        raise HTTPException(status_code=400, detail="Missing access_token")
+
+    # Fetch Google userinfo
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token_google}"},
+        )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    google_data = resp.json()
+    email = google_data.get("email")
+    full_name = google_data.get("name") or (email.split("@")[0] if email else "User")
+    picture = google_data.get("picture")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Could not get email from Google")
+
+    # Find existing user by email
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        # Auto-register with Google data
+        user = User(
+            email=email,
+            password_hash=get_password_hash(secrets.token_hex(32)),
+            full_name=full_name,
+            phone="",
+            role="customer",
+            avatar_url=picture,
+            is_active=True,
+            is_verified=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    else:
+        # Sync Google avatar if profile has none
+        if picture and not user.avatar_url:
+            user.avatar_url = picture
+            db.commit()
+            db.refresh(user)
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is inactive")
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse.from_orm(user),
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information."""
