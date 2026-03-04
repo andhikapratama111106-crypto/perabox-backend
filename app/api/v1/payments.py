@@ -12,8 +12,13 @@ from app.schemas.schemas import QRISResponse, PaymentStatusResponse
 router = APIRouter()
 settings = get_settings()
 
-# Initialize Midtrans Core API
 midtrans_core = midtransclient.CoreApi(
+    is_production=settings.MIDTRANS_IS_PRODUCTION,
+    server_key=settings.MIDTRANS_SERVER_KEY,
+    client_key=settings.MIDTRANS_CLIENT_KEY
+)
+
+midtrans_snap = midtransclient.Snap(
     is_production=settings.MIDTRANS_IS_PRODUCTION,
     server_key=settings.MIDTRANS_SERVER_KEY,
     client_key=settings.MIDTRANS_CLIENT_KEY
@@ -109,6 +114,61 @@ async def get_qris_code(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate QRIS: {str(e)}"
         )
+
+@router.post("/{payment_id}/snap-token", response_model=get_settings().SnapTokenResponse if hasattr(get_settings(), 'SnapTokenResponse') else dict)
+async def get_snap_token(
+    payment_id: uuid.UUID,
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate Midtrans Snap Token for high-end checkout experience.
+    """
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    booking = db.query(Booking).filter(Booking.id == payment.booking_id).first()
+    if not booking or (booking.customer_id != current_user.id and current_user.role != "admin"):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    try:
+        param = {
+            "transaction_details": {
+                "order_id": str(payment.id),
+                "gross_amount": int(payment.amount)
+            },
+            "item_details": [{
+                "id": str(booking.service_id),
+                "price": int(payment.amount),
+                "quantity": 1,
+                "name": f"Layanan Perabox - Booking {str(booking.id)[:8]}"
+            }],
+            "customer_details": {
+                "first_name": current_user.full_name,
+                "email": current_user.email,
+                "phone": current_user.phone
+            },
+            "callbacks": {
+                "finish": f"{settings.FRONTEND_URL}/customer/profile?status=success",
+                "error": f"{settings.FRONTEND_URL}/customer/profile?status=error",
+                "pending": f"{settings.FRONTEND_URL}/customer/profile?status=pending"
+            }
+        }
+
+        transaction = midtrans_snap.create_transaction(param)
+        return {
+            "token": transaction['token'],
+            "redirect_url": transaction['redirect_url']
+        }
+    except Exception as e:
+        # Fallback for local development if keys are missing
+        if "YOUR_SERVER_KEY" in settings.MIDTRANS_SERVER_KEY or not settings.MIDTRANS_SERVER_KEY:
+             return {
+                "token": "mock-snap-token-" + str(uuid.uuid4())[:8],
+                "redirect_url": "https://app.sandbox.midtrans.com/snap/v2/vtweb/mock-token"
+            }
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{payment_id}/verify", response_model=PaymentStatusResponse)
 async def verify_payment(

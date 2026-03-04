@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: str = "development"
+    FRONTEND_URL: str = "http://localhost:3000"
     GOOGLE_API_KEY: str | None = None
     
     # Midtrans

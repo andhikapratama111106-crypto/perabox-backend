@@ -242,3 +242,8 @@ class PaymentStatusResponse(BaseModel):
     payment_id: uuid.UUID
     status: str
     transaction_id: Optional[str]
+
+
+class SnapTokenResponse(BaseModel):
+    token: str
+    redirect_url: str
