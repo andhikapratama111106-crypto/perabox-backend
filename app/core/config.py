@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -24,11 +25,11 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     FRONTEND_URL: str = "http://localhost:3000"
-    GOOGLE_API_KEY: str | None = None
+    GOOGLE_API_KEY: Optional[str] = None
     
     # Midtrans
-    MIDTRANS_SERVER_KEY: str | None = None
-    MIDTRANS_CLIENT_KEY: str | None = None
+    MIDTRANS_SERVER_KEY: Optional[str] = None
+    MIDTRANS_CLIENT_KEY: Optional[str] = None
     MIDTRANS_IS_PRODUCTION: bool = False
     
     class Config:
